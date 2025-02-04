@@ -1,6 +1,7 @@
 from django.db.models import QuerySet
-from rest_framework import viewsets, serializers
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from django.utils.dateparse import parse_date
 
 from cinema.models import (
     Genre,
@@ -44,6 +45,10 @@ class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
 
+    @staticmethod
+    def _params_to_ints(query_string):
+        return [int(str_id) for str_id in query_string.split(",")]
+
     def get_serializer_class(self):
         if self.action == "list":
             return MovieListSerializer
@@ -53,10 +58,45 @@ class MovieViewSet(viewsets.ModelViewSet):
 
         return MovieSerializer
 
+    def get_queryset(self) -> QuerySet:
+        queryset = self.queryset
+
+        title = self.request.query_params.get("title")
+        actors = self.request.query_params.get("actors")
+        genres = self.request.query_params.get("genres")
+
+        if title:
+            queryset = queryset.filter(title__contains=title)
+        if actors:
+            actors = self._params_to_ints(actors)
+            queryset = queryset.filter(actors__id__in=actors)
+        if genres:
+            genres = self._params_to_ints(genres)
+            queryset = queryset.filter(genres__id__in=genres)
+
+        if self.action == ("list", "retrieve"):
+            queryset = Movie.objects.prefetch_related("genres", "actors")
+        return queryset
+
 
 class MovieSessionViewSet(viewsets.ModelViewSet):
     queryset = MovieSession.objects.all()
     serializer_class = MovieSessionSerializer
+
+    def get_queryset(self) -> QuerySet:
+        queryset = self.queryset
+
+        date_param = self.request.query_params.get("date")
+        movie_param = self.request.query_params.get("movie")
+
+        if date_param:
+            parsed_date = parse_date(date_param)
+            queryset = queryset.filter(show_time__date=parsed_date)
+
+        if movie_param:
+            queryset = queryset.filter(movie_id=int(movie_param))
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "list":
