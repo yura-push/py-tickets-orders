@@ -109,7 +109,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = ["id", "created_at", "tickets"]
         validators = [
             UniqueTogetherValidator(
-                queryset=Order.objects.all(),
+                queryset=Ticket.objects.all(),
                 fields=["movie_session", "row", "seat"],
             )
         ]
