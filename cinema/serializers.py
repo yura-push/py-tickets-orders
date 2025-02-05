@@ -1,6 +1,5 @@
 from django.db import transaction
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
 
 from cinema.models import (
     Genre,
@@ -109,6 +108,15 @@ class TicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = ["id", "movie_session", "row", "seat"]
 
+    def validate(self, attrs):
+        Ticket.validate_seat_row(
+            attrs["row"],
+            attrs["seat"],
+            attrs["movie_session"].cinema_hall.seats_in_row,
+            attrs["movie_session"].cinema_hall.rows,
+            serializers.ValidationError
+        )
+
 
 class OrderSerializer(serializers.ModelSerializer):
     tickets = TicketSerializer(
@@ -120,12 +128,6 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ["id", "created_at", "tickets"]
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Ticket.objects.all(),
-                fields=["movie_session", "row", "seat"],
-            )
-        ]
 
     def create(self, validated_data):
         with transaction.atomic():
