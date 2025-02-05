@@ -1,4 +1,4 @@
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Count, F
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_date
@@ -95,6 +95,17 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
 
         if movie_param:
             queryset = queryset.filter(movie_id=int(movie_param))
+
+        if self.action == "list":
+            queryset = (
+                queryset
+                .select_related("cinema_hall")
+                .annotate(
+                    tickets_available=F("cinema_hall__seats_in_row")
+                    * F("cinema_hall__rows")
+                    - Count("tickets")
+                )
+            ).order_by("id")
 
         return queryset
 
