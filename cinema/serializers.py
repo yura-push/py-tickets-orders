@@ -98,7 +98,8 @@ class MovieSessionDetailSerializer(MovieSessionSerializer):
         )
 
     def get_taken_places(self, obj):
-        tickets = Ticket.objects.filter(movie_session=obj).values("row", "seat")
+        tickets = (Ticket.objects.filter(movie_session=obj)
+                   .values("row", "seat"))
         return list(tickets)
 
 
@@ -116,6 +117,10 @@ class TicketSerializer(serializers.ModelSerializer):
             attrs["movie_session"].cinema_hall.rows,
             serializers.ValidationError
         )
+
+
+class TicketListSerializer(TicketSerializer):
+    movie_session = MovieSessionListSerializer(many=False, read_only=True)
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -136,3 +141,7 @@ class OrderSerializer(serializers.ModelSerializer):
             for ticket_data in tickets_data:
                 Ticket.objects.create(order=order, **ticket_data)
             return order
+
+
+class OrderListSerializer(OrderSerializer):
+    tickets = TicketListSerializer(many=True, read_only=True)
