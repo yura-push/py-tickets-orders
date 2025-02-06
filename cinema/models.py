@@ -100,7 +100,7 @@ class Ticket(models.Model):
             rows: int,
             error_to_raise
     ):
-        if not (1 <= seat <= seats_in_row) or (1 <= row <= rows):
+        if not (1 <= seat <= seats_in_row) and (1 <= row <= rows):
             raise error_to_raise(
                 {
                     "seat": f"seat must be in range [1, {seats_in_row}], "
